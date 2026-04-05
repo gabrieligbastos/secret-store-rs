@@ -1,0 +1,70 @@
+[package]
+name = "secret_store"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+license = "MIT OR Apache-2.0"
+description = "A unified, async secret store interface for Azure Key Vault, AWS Secrets Manager, GCP Secret Manager, and generic HTTP endpoints"
+repository = "https://github.com/gabrieligbastos/secret-store-rs"
+homepage = "https://github.com/gabrieligbastos/secret-store-rs"
+documentation = "https://docs.rs/secret_store"
+readme = "README.md"
+keywords = ["secrets", "cloud", "azure", "aws", "gcp"]
+categories = ["api-bindings", "authentication", "cryptography"]
+include = ["src/**/*.rs", "README.md", "LICENSE-MIT", "LICENSE-APACHE", "Cargo.toml"]
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Always-on dependencies (no network I/O, small footprint)
+# ──────────────────────────────────────────────────────────────────────────────
+[dependencies]
+async-trait    = "=0.1.88"
+chrono         = { version = "=0.4.41", default-features = false, features = ["clock", "serde"] }
+parking_lot    = "=0.12.3"
+thiserror      = "=2.0.12"
+tracing        = "=0.1.44"
+serde          = { version = "=1.0.228", features = ["derive"] }
+
+# ── KMS envelope-encryption layer (feature = "kms") ──────────────────────────
+aes-gcm    = { version = "=0.10.3",  optional = true }
+ciborium   = { version = "=0.2.2",   optional = true }
+dashmap    = { version = "=6.1.0",   optional = true }
+rand       = { version = "=0.9.1",   default-features = false, features = ["std", "std_rng", "os_rng"], optional = true }
+sha2       = { version = "=0.10.8",  optional = true }
+uuid       = { version = "=1.23.0",  features = ["v4", "serde"], optional = true }
+zeroize    = { version = "=1.8.1",   features = ["derive"], optional = true }
+
+# ── Azure Key Vault (feature = "azure") ──────────────────────────────────────
+tokio                           = { version = "=1.51.0", features = ["sync", "rt"], optional = true }
+azure_core                      = { version = "=0.33.0", optional = true }
+azure_identity                  = { version = "=0.33.0", optional = true }
+azure_security_keyvault_secrets = { version = "=0.12.0", optional = true }
+url                             = { version = "=2.5.4",  optional = true }
+futures-util                    = { version = "=0.3.31", default-features = false, features = ["std"], optional = true }
+
+# ── AWS Secrets Manager (feature = "aws") ────────────────────────────────────
+aws-config               = { version = "=1.8.0",  default-features = false, features = ["behavior-version-latest"], optional = true }
+aws-sdk-secretsmanager   = { version = "=1.73.0", default-features = false, optional = true }
+
+# ── GCP Secret Manager (feature = "gcp") — lean: gcp-auth + reqwest ──────────
+gcp_auth    = { version = "=0.12.4", optional = true }
+reqwest     = { version = "=0.12.15", default-features = false, features = ["rustls-tls-native-roots", "json"], optional = true }
+serde_json  = { version = "=1.0.149", optional = true }
+
+# ── Generic HTTP secret store (feature = "http") ─────────────────────────────
+# reqwest / serde_json / url already declared above; no extra deps needed.
+
+[dev-dependencies]
+mockall  = "=0.13.1"
+tokio    = { version = "=1.51.0", features = ["rt", "rt-multi-thread", "macros"] }
+
+[features]
+default = []
+kms   = ["dep:aes-gcm", "dep:ciborium", "dep:dashmap", "dep:rand", "dep:sha2", "dep:uuid", "dep:zeroize"]
+azure = ["dep:azure_core", "dep:azure_identity", "dep:azure_security_keyvault_secrets", "dep:url", "dep:tokio", "dep:futures-util"]
+aws   = ["dep:aws-config", "dep:aws-sdk-secretsmanager", "dep:tokio"]
+gcp   = ["dep:gcp_auth", "dep:reqwest", "dep:serde_json", "dep:tokio"]
+http  = ["dep:reqwest", "dep:serde_json", "dep:url", "dep:tokio"]

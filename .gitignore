@@ -1,0 +1,29 @@
+# ── Rust build artefacts ──────────────────────────────────────────────────────
+/target/
+# Library crates should not commit Cargo.lock (downstream resolves deps)
+Cargo.lock
+
+# ── IDE / editor ──────────────────────────────────────────────────────────────
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+.DS_Store
+Thumbs.db
+
+# ── Environment / secrets ─────────────────────────────────────────────────────
+.env
+.env.*
+*.pem
+*.key
+service-account*.json
+
+# ── Coverage / profiling ──────────────────────────────────────────────────────
+/coverage/
+*.profraw
+lcov.info
+
+# ── Misc ──────────────────────────────────────────────────────────────────────
+*.orig
+*.bak

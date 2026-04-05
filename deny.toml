@@ -1,0 +1,51 @@
+# cargo-deny configuration
+# Docs: https://embarkstudios.github.io/cargo-deny/index.html
+#
+# Run locally: cargo deny check
+
+[advisories]
+# Deny crates with known security vulnerabilities
+vulnerability = "deny"
+# Deny yanked crates
+yanked = "deny"
+# Warn on unmaintained crates
+unmaintained = "warn"
+notice = "warn"
+ignore = []
+
+[licenses]
+# Allow any license by default; restrict below as needed
+default = "allow"
+unlicensed = "deny"
+# Copyleft (GPL etc.) would be a problem for a library — deny if found
+copyleft = "deny"
+
+# Explicitly allow the licenses this project uses
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Unicode-3.0",
+    "Unicode-DFS-2016",
+    "OpenSSL",
+    "Zlib",
+    "CC0-1.0",
+]
+
+[bans]
+multiple-versions = "warn"
+
+# This crate uses rustls exclusively — ban OpenSSL to avoid accidentally
+# pulling it in through a transitive dependency.
+deny = [
+    { name = "openssl-sys" },
+]
+
+[sources]
+# Only allow crates from crates.io (no git deps in production code)
+unknown-registry = "deny"
+unknown-git = "warn"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]

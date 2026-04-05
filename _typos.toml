@@ -1,0 +1,20 @@
+# typos spell-checker configuration
+# Docs: https://github.com/crate-ci/typos
+#
+# Run locally: typos
+
+[default]
+extend-ignore-identifiers-re = [
+    # Common Rust/crypto abbreviations that typos flags incorrectly
+    "Aes",
+    "Gcm",
+    "Kms",
+    "Hmac",
+]
+
+[files]
+# Don't spell-check generated or vendored files
+extend-exclude = [
+    "Cargo.lock",
+    "target/",
+]
