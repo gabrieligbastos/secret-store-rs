@@ -34,10 +34,22 @@ jobs:
           expiry_epoch=$(date -d "$EXPIRES" +%s 2>/dev/null || date -j -f "%Y-%m-%d" "$EXPIRES" +%s)
           today_epoch=$(date -u +%s)
           days_left=$(( (expiry_epoch - today_epoch) / 86400 ))
+          if [ "$days_left" -le 0 ]; then
+            urgency="🚨 EXPIRED"
+          else
+            urgency="⚠️ Expiring soon"
+          fi
 
           echo "Token expires: $EXPIRES ($days_left days from today)"
 
           if [ "$days_left" -le 30 ]; then
+            # Ensure label exists before creating issue
+            gh label create "token-rotation" \
+              --repo "$REPO" \
+              --color "f9d0c4" \
+              --description "Token expiration reminders" \
+              2>/dev/null || true
+
             # Check if a reminder issue is already open
             existing=$(gh issue list \
               --repo "$REPO" \
@@ -53,7 +65,7 @@ jobs:
 
             gh issue create \
               --repo "$REPO" \
-              --title "Action required: rotate CARGO_REGISTRY_TOKEN (expires ${EXPIRES}, ${days_left}d left)" \
+              --title "$urgency: rotate CARGO_REGISTRY_TOKEN (expires ${EXPIRES}, ${days_left}d left)" \
               --label "token-rotation" \
               --body-file .github/ISSUE_TEMPLATE/token-rotation.md
             echo "Reminder issue created."
