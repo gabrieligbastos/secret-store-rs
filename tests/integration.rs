@@ -13,6 +13,7 @@
 use secret_store::{SecretStore, memory::InMemory};
 
 /// Skip the calling test unless `TEST_INTEGRATION` is set.
+#[allow(unused_macros)]
 macro_rules! maybe_skip_integration {
     () => {
         if std::env::var("TEST_INTEGRATION")

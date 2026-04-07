@@ -1,6 +1,5 @@
 //! Azure Key Vault-specific types and error-mapping helpers.
 
-
 /// Configuration keys accepted by [`super::builder::KeyVaultBuilder`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[non_exhaustive]

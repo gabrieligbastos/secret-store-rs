@@ -1,8 +1,10 @@
 # secret_store
 
+[![CI](https://github.com/gabrieligbastos/secret-store-rs/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/gabrieligbastos/secret-store-rs/actions/workflows/ci.yml)
 [![Crates.io](https://img.shields.io/crates/v/secret_store.svg)](https://crates.io/crates/secret_store)
 [![docs.rs](https://docs.rs/secret_store/badge.svg)](https://docs.rs/secret_store)
 [![License: MIT OR Apache-2.0](https://img.shields.io/crates/l/secret_store.svg)](LICENSE-MIT)
+[![MSRV: 1.85](https://img.shields.io/badge/rustc-1.85+-blue.svg)](https://blog.rust-lang.org/2025/02/20/Rust-1.85.0/)
 
 A unified, async `SecretStore` trait for multiple cloud secret backends, inspired by the architecture of [`object_store`](https://crates.io/crates/object_store).
 
