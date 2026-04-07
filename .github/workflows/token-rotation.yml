@@ -18,7 +18,7 @@ jobs:
     permissions:
       issues: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Check expiry and open issue if within 30 days
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
