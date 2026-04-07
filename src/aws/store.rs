@@ -79,7 +79,7 @@ impl SecretStore for AwsSecretsManagerStore {
 
 #[cfg(test)]
 mod tests {
-    use super::super::client::{AwsSmOps as _, MockAwsSmOps};
+    use super::super::client::MockAwsSmOps;
     use super::*;
     use crate::common::{Error, error::StringError};
     use mockall::predicate::eq;
