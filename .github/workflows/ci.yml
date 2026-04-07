@@ -112,10 +112,12 @@ jobs:
     if: always()
     steps:
       - name: All CI jobs passed
+        env:
+          RESULTS: ${{ toJSON(needs.*.result) }}
         run: |
-          if [[ '${{ contains(needs.*.result, "failure") || contains(needs.*.result, "cancelled") }}' == 'true' ]]; then
+          echo "Results: $RESULTS"
+          if echo "$RESULTS" | grep -qE '"(failure|cancelled)"'; then
             echo "One or more CI jobs failed or were cancelled"
-            echo "Results: ${{ toJSON(needs.*.result) }}"
             exit 1
           fi
           echo "All CI jobs succeeded."
