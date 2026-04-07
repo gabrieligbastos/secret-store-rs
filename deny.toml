@@ -7,7 +7,12 @@
 [advisories]
 version = 2
 # Specific advisories to ignore (add RUSTSEC-xxxx-yyyy entries here if needed)
-ignore = []
+ignore = [
+    # rustls-pemfile is unmaintained (archived Aug 2025); transitively pulled in
+    # by gcp_auth and reqwest. No upgrade path available until upstream drops it.
+    # Advisory: https://rustsec.org/advisories/RUSTSEC-2025-0134
+    { id = "RUSTSEC-2025-0134", reason = "transitive dep via gcp_auth/reqwest; no safe upgrade available" },
+]
 
 [licenses]
 version = 2
