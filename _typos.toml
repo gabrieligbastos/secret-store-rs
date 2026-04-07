@@ -10,6 +10,9 @@ extend-ignore-identifiers-re = [
     "Gcm",
     "Kms",
     "Hmac",
+    # Product name — typos thinks "Hashi" should be "Hash"
+    "HashiCorp",
+    "Hashi",
 ]
 
 [files]

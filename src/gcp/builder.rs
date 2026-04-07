@@ -1,9 +1,9 @@
 //! Builder for [`super::GcpSecretManagerStore`].
 
-use crate::common::Result;
 use super::client::GcpHttpClient;
 use super::store::GcpSecretManagerStore;
 use super::types::ConfigKey;
+use crate::common::Result;
 
 /// Fluent builder for [`GcpSecretManagerStore`].
 ///
@@ -79,19 +79,20 @@ impl GcpSecretManagerBuilder {
                 ),
             })?;
 
-        let auth_manager = gcp_auth::provider().await.map_err(|e| {
+        let auth_manager =
+            gcp_auth::provider()
+                .await
+                .map_err(|e| crate::common::Error::Configuration {
+                    store: "GcpSecretManager",
+                    message: format!("failed to initialise GCP authentication: {e}"),
+                })?;
+
+        let http_client = reqwest::Client::builder().build().map_err(|e| {
             crate::common::Error::Configuration {
                 store: "GcpSecretManager",
-                message: format!("failed to initialise GCP authentication: {e}"),
+                message: format!("failed to build HTTP client: {e}"),
             }
         })?;
-
-        let http_client = reqwest::Client::builder()
-            .build()
-            .map_err(|e| crate::common::Error::Configuration {
-                store: "GcpSecretManager",
-                message: format!("failed to build HTTP client: {e}"),
-            })?;
 
         Ok(GcpSecretManagerStore::from_http_client(GcpHttpClient {
             project_id,
@@ -132,6 +133,9 @@ mod tests {
         unsafe { std::env::remove_var("GCP_PROJECT_ID") };
         let result = GcpSecretManagerBuilder::new().build().await;
         assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), crate::common::Error::Configuration { .. }));
+        assert!(matches!(
+            result.unwrap_err(),
+            crate::common::Error::Configuration { .. }
+        ));
     }
 }

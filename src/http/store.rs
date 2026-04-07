@@ -4,9 +4,9 @@ use async_trait::async_trait;
 use std::fmt;
 use std::sync::Arc;
 
-use crate::common::{Result, SecretMeta, SecretValue};
-use crate::SecretStore;
 use super::client::{HttpOps, ReqwestHttpClient};
+use crate::SecretStore;
+use crate::common::{Result, SecretMeta, SecretValue};
 
 /// A generic HTTP-backed [`SecretStore`].
 ///
@@ -34,7 +34,9 @@ impl HttpSecretStore {
     }
 
     pub(super) fn from_reqwest_client(client: ReqwestHttpClient) -> Self {
-        Self { ops: Arc::new(client) }
+        Self {
+            ops: Arc::new(client),
+        }
     }
 
     #[cfg(test)]
@@ -69,8 +71,8 @@ impl SecretStore for HttpSecretStore {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::client::MockHttpOps;
+    use super::*;
     use crate::common::{Error, error::StringError};
     use mockall::predicate::eq;
 
@@ -79,8 +81,14 @@ mod tests {
     fn store_with_mock(setup: impl FnOnce(&mut MockHttpOps)) -> HttpSecretStore {
         let mut mock = MockHttpOps::new();
         setup(&mut mock);
-        mock.expect_display_name().return_const("<mock-url>".to_owned()).times(0..);
-        mock.expect_debug_info().return_const("base_url=<mock>, auth=none, namespace=none, provider=HttpSecretStore".to_owned()).times(0..);
+        mock.expect_display_name()
+            .return_const("<mock-url>".to_owned())
+            .times(0..);
+        mock.expect_debug_info()
+            .return_const(
+                "base_url=<mock>, auth=none, namespace=none, provider=HttpSecretStore".to_owned(),
+            )
+            .times(0..);
         HttpSecretStore::from_ops(Arc::new(mock))
     }
 
@@ -94,30 +102,39 @@ mod tests {
                 .once()
                 .returning(|_| Ok("token-value-123".to_owned()));
         });
-        assert_eq!(store.get_secret("my-token").await.unwrap().expose_secret(), "token-value-123");
+        assert_eq!(
+            store.get_secret("my-token").await.unwrap().expose_secret(),
+            "token-value-123"
+        );
     }
 
     #[tokio::test]
     async fn get_secret_not_found_returns_not_found_error() {
         let store = store_with_mock(|m| {
-            m.expect_get()
-                .once()
-                .returning(|name| Err(Error::NotFound {
+            m.expect_get().once().returning(|name| {
+                Err(Error::NotFound {
                     name: name.to_owned(),
                     source: Box::new(StringError::from("404 Not Found")),
-                }));
+                })
+            });
         });
-        assert!(store.get_secret("missing").await.unwrap_err().is_not_found());
+        assert!(
+            store
+                .get_secret("missing")
+                .await
+                .unwrap_err()
+                .is_not_found()
+        );
     }
 
     #[tokio::test]
     async fn get_secret_unauthenticated_propagates() {
         let store = store_with_mock(|m| {
-            m.expect_get()
-                .once()
-                .returning(|_| Err(Error::Unauthenticated {
+            m.expect_get().once().returning(|_| {
+                Err(Error::Unauthenticated {
                     source: Box::new(StringError::from("401")),
-                }));
+                })
+            });
         });
         assert!(store.get_secret("key").await.unwrap_err().is_auth());
     }
@@ -125,12 +142,12 @@ mod tests {
     #[tokio::test]
     async fn get_secret_permission_denied_propagates() {
         let store = store_with_mock(|m| {
-            m.expect_get()
-                .once()
-                .returning(|name| Err(Error::PermissionDenied {
+            m.expect_get().once().returning(|name| {
+                Err(Error::PermissionDenied {
                     name: name.to_owned(),
                     source: Box::new(StringError::from("403 Forbidden")),
-                }));
+                })
+            });
         });
         assert!(store.get_secret("key").await.unwrap_err().is_auth());
     }
@@ -138,12 +155,12 @@ mod tests {
     #[tokio::test]
     async fn get_secret_generic_error_propagates() {
         let store = store_with_mock(|m| {
-            m.expect_get()
-                .once()
-                .returning(|_| Err(Error::Generic {
+            m.expect_get().once().returning(|_| {
+                Err(Error::Generic {
                     store: "HttpSecretStore",
                     source: Box::new(StringError::from("503 Service Unavailable")),
-                }));
+                })
+            });
         });
         assert!(store.get_secret("key").await.is_err());
     }
@@ -158,17 +175,20 @@ mod tests {
                 .once()
                 .returning(|_, _| Ok(()));
         });
-        store.set_secret("config-key", "config-value").await.unwrap();
+        store
+            .set_secret("config-key", "config-value")
+            .await
+            .unwrap();
     }
 
     #[tokio::test]
     async fn set_secret_propagates_auth_error() {
         let store = store_with_mock(|m| {
-            m.expect_set()
-                .once()
-                .returning(|_, _| Err(Error::Unauthenticated {
+            m.expect_set().once().returning(|_, _| {
+                Err(Error::Unauthenticated {
                     source: Box::new(StringError::from("401")),
-                }));
+                })
+            });
         });
         assert!(store.set_secret("k", "v").await.unwrap_err().is_auth());
     }
@@ -176,12 +196,12 @@ mod tests {
     #[tokio::test]
     async fn set_secret_propagates_generic_error() {
         let store = store_with_mock(|m| {
-            m.expect_set()
-                .once()
-                .returning(|_, _| Err(Error::Generic {
+            m.expect_set().once().returning(|_, _| {
+                Err(Error::Generic {
                     store: "HttpSecretStore",
                     source: Box::new(StringError::from("503")),
-                }));
+                })
+            });
         });
         assert!(store.set_secret("k", "v").await.is_err());
     }
@@ -202,27 +222,39 @@ mod tests {
     #[tokio::test]
     async fn delete_nonexistent_secret_returns_not_found() {
         let store = store_with_mock(|m| {
-            m.expect_delete()
-                .once()
-                .returning(|name| Err(Error::NotFound {
+            m.expect_delete().once().returning(|name| {
+                Err(Error::NotFound {
                     name: name.to_owned(),
                     source: Box::new(StringError::from("404")),
-                }));
+                })
+            });
         });
-        assert!(store.delete_secret("ghost").await.unwrap_err().is_not_found());
+        assert!(
+            store
+                .delete_secret("ghost")
+                .await
+                .unwrap_err()
+                .is_not_found()
+        );
     }
 
     #[tokio::test]
     async fn delete_propagates_permission_denied() {
         let store = store_with_mock(|m| {
-            m.expect_delete()
-                .once()
-                .returning(|name| Err(Error::PermissionDenied {
+            m.expect_delete().once().returning(|name| {
+                Err(Error::PermissionDenied {
                     name: name.to_owned(),
                     source: Box::new(StringError::from("403")),
-                }));
+                })
+            });
         });
-        assert!(store.delete_secret("protected").await.unwrap_err().is_auth());
+        assert!(
+            store
+                .delete_secret("protected")
+                .await
+                .unwrap_err()
+                .is_auth()
+        );
     }
 
     // ── list_secrets ──────────────────────────────────────────────────────────
@@ -245,7 +277,10 @@ mod tests {
                 .once()
                 .returning(|_| Ok(vec!["prod/db".to_owned()]));
         });
-        assert_eq!(store.list_secrets(Some("prod/")).await.unwrap()[0].name, "prod/db");
+        assert_eq!(
+            store.list_secrets(Some("prod/")).await.unwrap()[0].name,
+            "prod/db"
+        );
     }
 
     #[tokio::test]
@@ -259,12 +294,12 @@ mod tests {
     #[tokio::test]
     async fn list_secrets_propagates_error() {
         let store = store_with_mock(|m| {
-            m.expect_list()
-                .once()
-                .returning(|_| Err(Error::Generic {
+            m.expect_list().once().returning(|_| {
+                Err(Error::Generic {
                     store: "HttpSecretStore",
                     source: Box::new(StringError::from("connection refused")),
-                }));
+                })
+            });
         });
         assert!(store.list_secrets(None).await.is_err());
     }
@@ -295,10 +330,15 @@ mod tests {
     fn debug_shows_connection_details() {
         const DETAILS: &str = "base_url=http://vault:8200/v1/secret, auth=Bearer, namespace=none, provider=HttpSecretStore";
         let store = store_with_mock(|m| {
-            m.expect_debug_info().once().return_const(DETAILS.to_owned());
+            m.expect_debug_info()
+                .once()
+                .return_const(DETAILS.to_owned());
         });
         let debug_str = format!("{:?}", store);
         assert!(debug_str.contains("base_url="), "debug was: {debug_str}");
-        assert!(debug_str.contains("provider=HttpSecretStore"), "debug was: {debug_str}");
+        assert!(
+            debug_str.contains("provider=HttpSecretStore"),
+            "debug was: {debug_str}"
+        );
     }
 }

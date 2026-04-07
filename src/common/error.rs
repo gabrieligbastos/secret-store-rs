@@ -32,7 +32,10 @@ pub enum Error {
 
     /// A configuration error (missing env var, malformed URL, etc.).
     #[error("Configuration error for '{store}': {message}")]
-    Configuration { store: &'static str, message: String },
+    Configuration {
+        store: &'static str,
+        message: String,
+    },
 
     /// The operation is not implemented by this provider.
     #[error("Operation '{operation}' is not implemented by '{store}'")]
@@ -58,7 +61,10 @@ impl Error {
 
     /// Returns `true` if the error is authentication-related.
     pub fn is_auth(&self) -> bool {
-        matches!(self, Self::Unauthenticated { .. } | Self::PermissionDenied { .. })
+        matches!(
+            self,
+            Self::Unauthenticated { .. } | Self::PermissionDenied { .. }
+        )
     }
 }
 
@@ -140,7 +146,10 @@ mod tests {
         };
         let msg = e.to_string();
         assert!(msg.contains("AzureKeyVault"), "message was: {msg}");
-        assert!(msg.contains("AZURE_KEYVAULT_URL is not set"), "message was: {msg}");
+        assert!(
+            msg.contains("AZURE_KEYVAULT_URL is not set"),
+            "message was: {msg}"
+        );
     }
 
     #[test]

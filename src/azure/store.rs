@@ -4,9 +4,9 @@ use async_trait::async_trait;
 use std::fmt;
 use std::sync::Arc;
 
-use crate::common::{Result, SecretMeta, SecretValue};
-use crate::SecretStore;
 use super::client::AzureKvOps;
+use crate::SecretStore;
+use crate::common::{Result, SecretMeta, SecretValue};
 
 /// An Azure Key Vault-backed [`SecretStore`].
 ///
@@ -67,8 +67,8 @@ impl SecretStore for KeyVaultSecretStore {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::client::MockAzureKvOps;
+    use super::*;
     use crate::common::{Error, error::StringError};
     use mockall::predicate::eq;
 
@@ -79,8 +79,12 @@ mod tests {
         setup(&mut mock);
         // Fallbacks: allow display_name / debug_info to be called any number of
         // times (including zero) without requiring an explicit expectation.
-        mock.expect_display_name().return_const("<mock-vault>".to_owned()).times(0..);
-        mock.expect_debug_info().return_const("vault_url=<mock>, provider=AzureKeyVault".to_owned()).times(0..);
+        mock.expect_display_name()
+            .return_const("<mock-vault>".to_owned())
+            .times(0..);
+        mock.expect_debug_info()
+            .return_const("vault_url=<mock>, provider=AzureKeyVault".to_owned())
+            .times(0..);
         KeyVaultSecretStore::from_ops(Arc::new(mock))
     }
 
@@ -101,24 +105,30 @@ mod tests {
     #[tokio::test]
     async fn get_secret_not_found_returns_not_found_error() {
         let store = store_with_mock(|m| {
-            m.expect_get()
-                .once()
-                .returning(|name| Err(Error::NotFound {
+            m.expect_get().once().returning(|name| {
+                Err(Error::NotFound {
                     name: name.to_owned(),
                     source: Box::new(StringError::from("404")),
-                }));
+                })
+            });
         });
-        assert!(store.get_secret("missing").await.unwrap_err().is_not_found());
+        assert!(
+            store
+                .get_secret("missing")
+                .await
+                .unwrap_err()
+                .is_not_found()
+        );
     }
 
     #[tokio::test]
     async fn get_secret_unauthenticated_propagates() {
         let store = store_with_mock(|m| {
-            m.expect_get()
-                .once()
-                .returning(|_| Err(Error::Unauthenticated {
+            m.expect_get().once().returning(|_| {
+                Err(Error::Unauthenticated {
                     source: Box::new(StringError::from("401")),
-                }));
+                })
+            });
         });
         assert!(store.get_secret("key").await.unwrap_err().is_auth());
     }
@@ -126,12 +136,12 @@ mod tests {
     #[tokio::test]
     async fn get_secret_permission_denied_propagates() {
         let store = store_with_mock(|m| {
-            m.expect_get()
-                .once()
-                .returning(|name| Err(Error::PermissionDenied {
+            m.expect_get().once().returning(|name| {
+                Err(Error::PermissionDenied {
                     name: name.to_owned(),
                     source: Box::new(StringError::from("403")),
-                }));
+                })
+            });
         });
         assert!(store.get_secret("key").await.unwrap_err().is_auth());
     }
@@ -139,12 +149,12 @@ mod tests {
     #[tokio::test]
     async fn get_secret_generic_error_propagates() {
         let store = store_with_mock(|m| {
-            m.expect_get()
-                .once()
-                .returning(|_| Err(Error::Generic {
+            m.expect_get().once().returning(|_| {
+                Err(Error::Generic {
                     store: "AzureKeyVault",
                     source: Box::new(StringError::from("service unavailable")),
-                }));
+                })
+            });
         });
         let err = store.get_secret("key").await.unwrap_err();
         assert!(!err.is_not_found() && !err.is_auth());
@@ -160,17 +170,20 @@ mod tests {
                 .once()
                 .returning(|_, _| Ok(()));
         });
-        store.set_secret("api-key", "my-secret-value").await.unwrap();
+        store
+            .set_secret("api-key", "my-secret-value")
+            .await
+            .unwrap();
     }
 
     #[tokio::test]
     async fn set_secret_propagates_auth_error() {
         let store = store_with_mock(|m| {
-            m.expect_set()
-                .once()
-                .returning(|_, _| Err(Error::Unauthenticated {
+            m.expect_set().once().returning(|_, _| {
+                Err(Error::Unauthenticated {
                     source: Box::new(StringError::from("401")),
-                }));
+                })
+            });
         });
         assert!(store.set_secret("k", "v").await.unwrap_err().is_auth());
     }
@@ -178,12 +191,12 @@ mod tests {
     #[tokio::test]
     async fn set_secret_propagates_generic_error() {
         let store = store_with_mock(|m| {
-            m.expect_set()
-                .once()
-                .returning(|_, _| Err(Error::Generic {
+            m.expect_set().once().returning(|_, _| {
+                Err(Error::Generic {
                     store: "AzureKeyVault",
                     source: Box::new(StringError::from("throttled")),
-                }));
+                })
+            });
         });
         assert!(store.set_secret("k", "v").await.is_err());
     }
@@ -204,14 +217,20 @@ mod tests {
     #[tokio::test]
     async fn delete_nonexistent_secret_returns_not_found() {
         let store = store_with_mock(|m| {
-            m.expect_delete()
-                .once()
-                .returning(|name| Err(Error::NotFound {
+            m.expect_delete().once().returning(|name| {
+                Err(Error::NotFound {
                     name: name.to_owned(),
                     source: Box::new(StringError::from("404")),
-                }));
+                })
+            });
         });
-        assert!(store.delete_secret("ghost").await.unwrap_err().is_not_found());
+        assert!(
+            store
+                .delete_secret("ghost")
+                .await
+                .unwrap_err()
+                .is_not_found()
+        );
     }
 
     // ── list_secrets ──────────────────────────────────────────────────────────
@@ -219,12 +238,12 @@ mod tests {
     #[tokio::test]
     async fn list_secrets_returns_not_implemented() {
         let store = store_with_mock(|m| {
-            m.expect_list()
-                .once()
-                .returning(|_| Err(Error::NotImplemented {
+            m.expect_list().once().returning(|_| {
+                Err(Error::NotImplemented {
                     operation: "list_secrets",
                     store: "AzureKeyVault",
-                }));
+                })
+            });
         });
         assert!(matches!(
             store.list_secrets(None).await.unwrap_err(),
@@ -260,12 +279,18 @@ mod tests {
 
     #[test]
     fn debug_shows_vault_details() {
-        const DETAILS: &str = "vault_url=https://test-vault.vault.azure.net/, provider=AzureKeyVault";
+        const DETAILS: &str =
+            "vault_url=https://test-vault.vault.azure.net/, provider=AzureKeyVault";
         let store = store_with_mock(|m| {
-            m.expect_debug_info().once().return_const(DETAILS.to_owned());
+            m.expect_debug_info()
+                .once()
+                .return_const(DETAILS.to_owned());
         });
         let debug_str = format!("{:?}", store);
         assert!(debug_str.contains("vault_url="), "debug was: {debug_str}");
-        assert!(debug_str.contains("provider=AzureKeyVault"), "debug was: {debug_str}");
+        assert!(
+            debug_str.contains("provider=AzureKeyVault"),
+            "debug was: {debug_str}"
+        );
     }
 }

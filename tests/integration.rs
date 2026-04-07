@@ -15,7 +15,10 @@ use secret_store::{SecretStore, memory::InMemory};
 /// Skip the calling test unless `TEST_INTEGRATION` is set.
 macro_rules! maybe_skip_integration {
     () => {
-        if std::env::var("TEST_INTEGRATION").unwrap_or_default().is_empty() {
+        if std::env::var("TEST_INTEGRATION")
+            .unwrap_or_default()
+            .is_empty()
+        {
             eprintln!("Skipping integration test — set TEST_INTEGRATION=1 to run");
             return;
         }
@@ -30,16 +33,28 @@ macro_rules! maybe_skip_integration {
 async fn inmemory_full_lifecycle() {
     let store = InMemory::new();
 
-    store.set_secret("integration-key", "integration-value").await.unwrap();
+    store
+        .set_secret("integration-key", "integration-value")
+        .await
+        .unwrap();
     let val = store.get_secret("integration-key").await.unwrap();
     assert_eq!(val.expose_secret(), "integration-value");
 
-    store.set_secret("integration-key", "updated-value").await.unwrap();
+    store
+        .set_secret("integration-key", "updated-value")
+        .await
+        .unwrap();
     let updated = store.get_secret("integration-key").await.unwrap();
     assert_eq!(updated.expose_secret(), "updated-value");
 
     store.delete_secret("integration-key").await.unwrap();
-    assert!(store.get_secret("integration-key").await.unwrap_err().is_not_found());
+    assert!(
+        store
+            .get_secret("integration-key")
+            .await
+            .unwrap_err()
+            .is_not_found()
+    );
 }
 
 #[tokio::test]
@@ -64,8 +79,8 @@ async fn inmemory_list_with_prefix() {
 #[cfg(feature = "kms")]
 #[tokio::test]
 async fn kms_noop_encrypt_decrypt_roundtrip() {
-    use std::sync::Arc;
     use secret_store::kms::{NoopKms, SecretsManager};
+    use std::sync::Arc;
 
     let mgr = SecretsManager::new(Arc::new(NoopKms), "master-key".to_owned());
     let plaintext = b"super-sensitive-value";
@@ -79,8 +94,8 @@ async fn kms_noop_encrypt_decrypt_roundtrip() {
 #[cfg(feature = "kms")]
 #[tokio::test]
 async fn kms_wrong_aad_decryption_fails() {
-    use std::sync::Arc;
     use secret_store::kms::{NoopKms, SecretsManager};
+    use std::sync::Arc;
 
     let mgr = SecretsManager::new(Arc::new(NoopKms), "master-key".to_owned());
     let ct = mgr.encrypt(b"value", b"correct-aad").await.unwrap();
@@ -179,9 +194,9 @@ async fn http_secret_store_full_lifecycle() {
 
     use secret_store::http::HttpSecretStoreBuilder;
 
-    let store = HttpSecretStoreBuilder::from_env()
-        .build()
-        .expect("Failed to build HTTP secret store — check SECRET_STORE_HTTP_URL / SECRET_STORE_HTTP_TOKEN");
+    let store = HttpSecretStoreBuilder::from_env().build().expect(
+        "Failed to build HTTP secret store — check SECRET_STORE_HTTP_URL / SECRET_STORE_HTTP_TOKEN",
+    );
 
     let name = "integration-test-key";
     let value = "integration-test-value-http";

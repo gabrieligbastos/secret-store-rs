@@ -60,10 +60,18 @@ impl KeyVaultBuilder {
     /// Fields that are already set via `with_*` are **not** overwritten.
     pub fn from_env() -> Self {
         Self {
-            vault_url: std::env::var(ConfigKey::VaultUrl.env_var()).ok().filter(|v| !v.is_empty()),
-            tenant_id: std::env::var(ConfigKey::TenantId.env_var()).ok().filter(|v| !v.is_empty()),
-            client_id: std::env::var(ConfigKey::ClientId.env_var()).ok().filter(|v| !v.is_empty()),
-            client_secret: std::env::var(ConfigKey::ClientSecret.env_var()).ok().filter(|v| !v.is_empty()),
+            vault_url: std::env::var(ConfigKey::VaultUrl.env_var())
+                .ok()
+                .filter(|v| !v.is_empty()),
+            tenant_id: std::env::var(ConfigKey::TenantId.env_var())
+                .ok()
+                .filter(|v| !v.is_empty()),
+            client_id: std::env::var(ConfigKey::ClientId.env_var())
+                .ok()
+                .filter(|v| !v.is_empty()),
+            client_secret: std::env::var(ConfigKey::ClientSecret.env_var())
+                .ok()
+                .filter(|v| !v.is_empty()),
         }
     }
 
@@ -94,16 +102,19 @@ impl KeyVaultBuilder {
     /// Builds a [`KeyVaultSecretStore`] using the configured values.
     ///
     /// Falls back to `AZURE_KEYVAULT_URL` for the vault URL if not explicitly
-    /// set.  Credentials are resolved via [`DefaultAzureCredential`], which
-    /// automatically picks up `AZURE_*` env vars, managed identity, the Azure
-    /// CLI, and more.
+    /// set.  Credentials are resolved via `AzureCliCredential` (default) or
+    /// `ClientSecretCredential` when tenant/client/secret env vars are all set.
     ///
     /// # Errors
     /// Returns [`crate::Error::Configuration`] if `vault_url` is missing.
     pub async fn build(self) -> Result<KeyVaultSecretStore> {
         let vault_url = self
             .vault_url
-            .or_else(|| std::env::var(ConfigKey::VaultUrl.env_var()).ok().filter(|v| !v.is_empty()))
+            .or_else(|| {
+                std::env::var(ConfigKey::VaultUrl.env_var())
+                    .ok()
+                    .filter(|v| !v.is_empty())
+            })
             .ok_or_else(|| crate::common::Error::Configuration {
                 store: "AzureKeyVault",
                 message: format!(
@@ -117,28 +128,29 @@ impl KeyVaultBuilder {
             self.client_id.as_deref(),
             self.client_secret.as_deref(),
         ) {
-            (Some(tenant), Some(client_id), Some(secret)) => {
-                ClientSecretCredential::new(
-                    tenant,
-                    client_id.to_owned(),
-                    Secret::new(secret.to_owned()),
-                    None,
-                )
-                .map_err(|e| crate::common::Error::Configuration {
-                    store: "AzureKeyVault",
-                    message: format!("failed to create ClientSecretCredential: {e}"),
-                })?
-            }
-            _ => AzureCliCredential::new(None).map_err(|e| crate::common::Error::Configuration {
-                store: "AzureKeyVault",
-                message: format!("failed to create AzureCliCredential: {e}"),
-            })?,
-        };
-        let client = SecretClient::new(&vault_url, credential, None)
+            (Some(tenant), Some(client_id), Some(secret)) => ClientSecretCredential::new(
+                tenant,
+                client_id.to_owned(),
+                Secret::new(secret.to_owned()),
+                None,
+            )
             .map_err(|e| crate::common::Error::Configuration {
                 store: "AzureKeyVault",
+                message: format!("failed to create ClientSecretCredential: {e}"),
+            })?,
+            _ => {
+                AzureCliCredential::new(None).map_err(|e| crate::common::Error::Configuration {
+                    store: "AzureKeyVault",
+                    message: format!("failed to create AzureCliCredential: {e}"),
+                })?
+            }
+        };
+        let client = SecretClient::new(&vault_url, credential, None).map_err(|e| {
+            crate::common::Error::Configuration {
+                store: "AzureKeyVault",
                 message: format!("failed to create SecretClient: {e}"),
-            })?;
+            }
+        })?;
 
         let sdk_client = AzureSdkClient { client, vault_url };
         Ok(KeyVaultSecretStore::new(Arc::new(sdk_client)))
@@ -152,7 +164,10 @@ mod tests {
     #[test]
     fn builder_stores_vault_url() {
         let b = KeyVaultBuilder::new().with_vault_url("https://test.vault.azure.net/");
-        assert_eq!(b.vault_url.as_deref(), Some("https://test.vault.azure.net/"));
+        assert_eq!(
+            b.vault_url.as_deref(),
+            Some("https://test.vault.azure.net/")
+        );
     }
 
     #[test]
@@ -171,7 +186,10 @@ mod tests {
     fn from_env_reads_vault_url_from_env() {
         unsafe { std::env::set_var("AZURE_KEYVAULT_URL", "https://env-vault.vault.azure.net/") };
         let b = KeyVaultBuilder::from_env();
-        assert_eq!(b.vault_url.as_deref(), Some("https://env-vault.vault.azure.net/"));
+        assert_eq!(
+            b.vault_url.as_deref(),
+            Some("https://env-vault.vault.azure.net/")
+        );
         unsafe { std::env::remove_var("AZURE_KEYVAULT_URL") };
     }
 

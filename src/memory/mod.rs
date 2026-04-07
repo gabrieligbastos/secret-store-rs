@@ -11,8 +11,8 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use parking_lot::RwLock;
 
-use crate::common::{Error, Result, SecretMeta, SecretValue};
 use crate::SecretStore;
+use crate::common::{Error, Result, SecretMeta, SecretValue};
 use types::InMemoryState;
 
 /// An in-memory [`SecretStore`] backed by a `HashMap`.
@@ -45,7 +45,9 @@ impl InMemory {
 
     /// Creates an [`InMemory`] store pre-populated with the given key-value
     /// pairs.  Useful for seeding test fixtures.
-    pub fn with_secrets(secrets: impl IntoIterator<Item = (impl Into<String>, impl Into<String>)>) -> Self {
+    pub fn with_secrets(
+        secrets: impl IntoIterator<Item = (impl Into<String>, impl Into<String>)>,
+    ) -> Self {
         let store = Self::new();
         {
             let mut state = store.state.write();
@@ -73,9 +75,9 @@ impl SecretStore for InMemory {
             .map(|v| SecretValue::new(v.clone()))
             .ok_or_else(|| Error::NotFound {
                 name: name.to_owned(),
-                source: Box::new(crate::common::error::StringError(
-                    format!("secret '{name}' does not exist in InMemory store"),
-                )),
+                source: Box::new(crate::common::error::StringError(format!(
+                    "secret '{name}' does not exist in InMemory store"
+                ))),
             })
     }
 
@@ -89,14 +91,12 @@ impl SecretStore for InMemory {
 
     async fn delete_secret(&self, name: &str) -> Result<()> {
         let removed = self.state.write().secrets.remove(name);
-        removed
-            .map(|_| ())
-            .ok_or_else(|| Error::NotFound {
-                name: name.to_owned(),
-                source: Box::new(crate::common::error::StringError(
-                    format!("secret '{name}' does not exist in InMemory store"),
-                )),
-            })
+        removed.map(|_| ()).ok_or_else(|| Error::NotFound {
+            name: name.to_owned(),
+            source: Box::new(crate::common::error::StringError(format!(
+                "secret '{name}' does not exist in InMemory store"
+            ))),
+        })
     }
 
     async fn list_secrets(&self, prefix: Option<&str>) -> Result<Vec<SecretMeta>> {
@@ -104,7 +104,7 @@ impl SecretStore for InMemory {
         let metas = state
             .secrets
             .keys()
-            .filter(|k| prefix.map_or(true, |p| k.starts_with(p)))
+            .filter(|k| prefix.is_none_or(|p| k.starts_with(p)))
             .map(|k| SecretMeta::new(k.clone()))
             .collect();
         Ok(metas)

@@ -271,4 +271,3 @@ impl<T: SecretStore> SecretStore for Box<T> {
         self.as_ref().list_secrets(prefix).await
     }
 }
-

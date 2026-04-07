@@ -1,6 +1,5 @@
 //! Azure Key Vault-specific types and error-mapping helpers.
 
-use crate::common::{Error, Result};
 
 /// Configuration keys accepted by [`super::builder::KeyVaultBuilder`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -36,19 +35,6 @@ impl std::fmt::Display for ConfigKey {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(self.env_var())
     }
-}
-
-/// Reads a required environment variable, returning a
-/// [`Error::Configuration`] if it is absent or empty.
-pub(super) fn required_env(key: ConfigKey) -> Result<String> {
-    let var = key.env_var();
-    std::env::var(var)
-        .ok()
-        .filter(|v| !v.is_empty())
-        .ok_or_else(|| Error::Configuration {
-            store: "AzureKeyVault",
-            message: format!("environment variable `{var}` is not set or empty"),
-        })
 }
 
 #[cfg(test)]

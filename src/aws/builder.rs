@@ -3,10 +3,10 @@
 use aws_config::BehaviorVersion;
 use aws_sdk_secretsmanager::Client;
 
-use crate::common::Result;
 use super::client::AwsSdkClient;
 use super::store::AwsSecretsManagerStore;
 use super::types::ConfigKey;
+use crate::common::Result;
 
 /// Fluent builder for [`AwsSecretsManagerStore`].
 ///
@@ -75,7 +75,9 @@ impl AwsSecretsManagerBuilder {
         }
         let config = loader.load().await;
         let client = Client::new(&config);
-        Ok(AwsSecretsManagerStore::from_sdk_client(AwsSdkClient { client }))
+        Ok(AwsSecretsManagerStore::from_sdk_client(AwsSdkClient {
+            client,
+        }))
     }
 }
 

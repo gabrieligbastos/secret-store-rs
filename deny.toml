@@ -8,9 +8,8 @@
 vulnerability = "deny"
 # Deny yanked crates
 yanked = "deny"
-# Warn on unmaintained crates
-unmaintained = "warn"
-notice = "warn"
+# Scope of unmaintained checks: "all", "workspace", "transitive", or "none"
+unmaintained = "all"
 ignore = []
 
 [licenses]

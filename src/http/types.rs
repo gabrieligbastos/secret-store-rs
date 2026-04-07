@@ -40,10 +40,21 @@ pub(super) fn map_http_error(
     e: impl std::error::Error + Send + Sync + 'static,
 ) -> Error {
     match status {
-        404 => Error::NotFound { name: name.to_owned(), source: Box::new(e) },
-        401 => Error::Unauthenticated { source: Box::new(e) },
-        403 => Error::PermissionDenied { name: name.to_owned(), source: Box::new(e) },
-        _ => Error::Generic { store: "HttpSecretStore", source: Box::new(e) },
+        404 => Error::NotFound {
+            name: name.to_owned(),
+            source: Box::new(e),
+        },
+        401 => Error::Unauthenticated {
+            source: Box::new(e),
+        },
+        403 => Error::PermissionDenied {
+            name: name.to_owned(),
+            source: Box::new(e),
+        },
+        _ => Error::Generic {
+            store: "HttpSecretStore",
+            source: Box::new(e),
+        },
     }
 }
 
@@ -56,7 +67,10 @@ mod tests {
     fn config_key_env_var_names() {
         assert_eq!(ConfigKey::BaseUrl.env_var(), "SECRET_STORE_HTTP_URL");
         assert_eq!(ConfigKey::AuthToken.env_var(), "SECRET_STORE_HTTP_TOKEN");
-        assert_eq!(ConfigKey::Namespace.env_var(), "SECRET_STORE_HTTP_NAMESPACE");
+        assert_eq!(
+            ConfigKey::Namespace.env_var(),
+            "SECRET_STORE_HTTP_NAMESPACE"
+        );
     }
 
     #[test]

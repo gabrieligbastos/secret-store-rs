@@ -38,10 +38,21 @@ pub(super) fn map_gcp_http_error(
     e: impl std::error::Error + Send + Sync + 'static,
 ) -> Error {
     match status {
-        404 => Error::NotFound { name: name.to_owned(), source: Box::new(e) },
-        401 => Error::Unauthenticated { source: Box::new(e) },
-        403 => Error::PermissionDenied { name: name.to_owned(), source: Box::new(e) },
-        _ => Error::Generic { store: "GcpSecretManager", source: Box::new(e) },
+        404 => Error::NotFound {
+            name: name.to_owned(),
+            source: Box::new(e),
+        },
+        401 => Error::Unauthenticated {
+            source: Box::new(e),
+        },
+        403 => Error::PermissionDenied {
+            name: name.to_owned(),
+            source: Box::new(e),
+        },
+        _ => Error::Generic {
+            store: "GcpSecretManager",
+            source: Box::new(e),
+        },
     }
 }
 
@@ -53,7 +64,10 @@ mod tests {
     #[test]
     fn config_key_env_var_names() {
         assert_eq!(ConfigKey::ProjectId.env_var(), "GCP_PROJECT_ID");
-        assert_eq!(ConfigKey::CredentialsFile.env_var(), "GOOGLE_APPLICATION_CREDENTIALS");
+        assert_eq!(
+            ConfigKey::CredentialsFile.env_var(),
+            "GOOGLE_APPLICATION_CREDENTIALS"
+        );
     }
 
     #[test]

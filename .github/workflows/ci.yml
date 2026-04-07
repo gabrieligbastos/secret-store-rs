@@ -40,10 +40,19 @@ jobs:
       - name: cargo test (${{ matrix.features || 'default' }})
         run: |
           if [ -z "${{ matrix.features }}" ]; then
-            cargo test
+            cargo test --lib --tests
           else
-            cargo test --features "${{ matrix.features }}"
+            cargo test --lib --tests --features "${{ matrix.features }}"
           fi
+
+  doctest:
+    name: cargo test --doc (all features)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo test --doc --all-features
 
   clippy:
     name: cargo clippy
@@ -98,7 +107,7 @@ jobs:
   # matrix permutation individually.
   ci-success:
     name: ci-success
-    needs: [check, test, clippy, fmt, docs, deny, typos]
+    needs: [check, test, doctest, clippy, fmt, docs, deny, typos]
     runs-on: ubuntu-latest
     if: always()
     steps:

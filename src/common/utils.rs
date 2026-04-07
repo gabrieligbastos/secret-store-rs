@@ -25,12 +25,26 @@ pub fn obfuscate_secret(s: &str) -> String {
         }
         9..=12 => {
             let first: String = s.chars().take(2).collect();
-            let last: String = s.chars().rev().take(1).collect::<String>().chars().rev().collect();
+            let last: String = s
+                .chars()
+                .rev()
+                .take(1)
+                .collect::<String>()
+                .chars()
+                .rev()
+                .collect();
             format!("{first}***{last}")
         }
         _ => {
             let first: String = s.chars().take(3).collect();
-            let last: String = s.chars().rev().take(3).collect::<String>().chars().rev().collect();
+            let last: String = s
+                .chars()
+                .rev()
+                .take(3)
+                .collect::<String>()
+                .chars()
+                .rev()
+                .collect();
             format!("{first}***{last}")
         }
     }

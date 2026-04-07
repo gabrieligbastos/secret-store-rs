@@ -10,9 +10,3 @@ use std::collections::HashMap;
 pub(super) struct InMemoryState {
     pub secrets: HashMap<String, String>,
 }
-
-impl InMemoryState {
-    pub fn new() -> Self {
-        Self::default()
-    }
-}

@@ -4,9 +4,9 @@ use async_trait::async_trait;
 use std::fmt;
 use std::sync::Arc;
 
-use crate::common::{Result, SecretMeta, SecretValue};
+use super::client::{GcpHttpClient, GcpSmOps};
 use crate::SecretStore;
-use super::client::{GcpSmOps, GcpHttpClient};
+use crate::common::{Result, SecretMeta, SecretValue};
 
 /// A GCP Secret Manager-backed [`SecretStore`].
 ///
@@ -29,7 +29,9 @@ impl fmt::Display for GcpSecretManagerStore {
 
 impl GcpSecretManagerStore {
     pub(super) fn from_http_client(client: GcpHttpClient) -> Self {
-        Self { ops: Arc::new(client) }
+        Self {
+            ops: Arc::new(client),
+        }
     }
 
     #[cfg(test)]
@@ -68,8 +70,8 @@ impl SecretStore for GcpSecretManagerStore {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::client::MockGcpSmOps;
+    use super::*;
     use crate::common::{Error, error::StringError};
     use mockall::predicate::eq;
 
@@ -78,8 +80,12 @@ mod tests {
     fn store_with_mock(setup: impl FnOnce(&mut MockGcpSmOps)) -> GcpSecretManagerStore {
         let mut mock = MockGcpSmOps::new();
         setup(&mut mock);
-        mock.expect_display_name().return_const("<mock-gcp>".to_owned()).times(0..);
-        mock.expect_debug_info().return_const("project_id=<mock>, api=<mock>, provider=GcpSecretManager".to_owned()).times(0..);
+        mock.expect_display_name()
+            .return_const("<mock-gcp>".to_owned())
+            .times(0..);
+        mock.expect_debug_info()
+            .return_const("project_id=<mock>, api=<mock>, provider=GcpSecretManager".to_owned())
+            .times(0..);
         GcpSecretManagerStore::from_ops(Arc::new(mock))
     }
 
@@ -93,30 +99,43 @@ mod tests {
                 .once()
                 .returning(|_| Ok("gcp-value".to_owned()));
         });
-        assert_eq!(store.get_secret("gcp-secret").await.unwrap().expose_secret(), "gcp-value");
+        assert_eq!(
+            store
+                .get_secret("gcp-secret")
+                .await
+                .unwrap()
+                .expose_secret(),
+            "gcp-value"
+        );
     }
 
     #[tokio::test]
     async fn get_secret_not_found_returns_error() {
         let store = store_with_mock(|m| {
-            m.expect_get()
-                .once()
-                .returning(|name| Err(Error::NotFound {
+            m.expect_get().once().returning(|name| {
+                Err(Error::NotFound {
                     name: name.to_owned(),
                     source: Box::new(StringError::from("404")),
-                }));
+                })
+            });
         });
-        assert!(store.get_secret("missing").await.unwrap_err().is_not_found());
+        assert!(
+            store
+                .get_secret("missing")
+                .await
+                .unwrap_err()
+                .is_not_found()
+        );
     }
 
     #[tokio::test]
     async fn get_secret_unauthenticated_propagates() {
         let store = store_with_mock(|m| {
-            m.expect_get()
-                .once()
-                .returning(|_| Err(Error::Unauthenticated {
+            m.expect_get().once().returning(|_| {
+                Err(Error::Unauthenticated {
                     source: Box::new(StringError::from("token expired")),
-                }));
+                })
+            });
         });
         assert!(store.get_secret("key").await.unwrap_err().is_auth());
     }
@@ -124,12 +143,12 @@ mod tests {
     #[tokio::test]
     async fn get_secret_permission_denied_propagates() {
         let store = store_with_mock(|m| {
-            m.expect_get()
-                .once()
-                .returning(|name| Err(Error::PermissionDenied {
+            m.expect_get().once().returning(|name| {
+                Err(Error::PermissionDenied {
                     name: name.to_owned(),
                     source: Box::new(StringError::from("403")),
-                }));
+                })
+            });
         });
         assert!(store.get_secret("key").await.unwrap_err().is_auth());
     }
@@ -150,12 +169,12 @@ mod tests {
     #[tokio::test]
     async fn set_secret_falls_back_to_create_on_not_found() {
         let store = store_with_mock(|m| {
-            m.expect_update()
-                .once()
-                .returning(|name, _| Err(Error::NotFound {
+            m.expect_update().once().returning(|name, _| {
+                Err(Error::NotFound {
                     name: name.to_owned(),
                     source: Box::new(StringError::from("404")),
-                }));
+                })
+            });
             m.expect_create()
                 .with(eq("new-secret"), eq("initial-val"))
                 .once()
@@ -167,11 +186,11 @@ mod tests {
     #[tokio::test]
     async fn set_secret_auth_error_does_not_trigger_create_fallback() {
         let store = store_with_mock(|m| {
-            m.expect_update()
-                .once()
-                .returning(|_, _| Err(Error::Unauthenticated {
+            m.expect_update().once().returning(|_, _| {
+                Err(Error::Unauthenticated {
                     source: Box::new(StringError::from("401")),
-                }));
+                })
+            });
         });
         assert!(store.set_secret("k", "v").await.unwrap_err().is_auth());
     }
@@ -192,14 +211,20 @@ mod tests {
     #[tokio::test]
     async fn delete_nonexistent_returns_not_found() {
         let store = store_with_mock(|m| {
-            m.expect_delete()
-                .once()
-                .returning(|name| Err(Error::NotFound {
+            m.expect_delete().once().returning(|name| {
+                Err(Error::NotFound {
                     name: name.to_owned(),
                     source: Box::new(StringError::from("404")),
-                }));
+                })
+            });
         });
-        assert!(store.delete_secret("ghost").await.unwrap_err().is_not_found());
+        assert!(
+            store
+                .delete_secret("ghost")
+                .await
+                .unwrap_err()
+                .is_not_found()
+        );
     }
 
     // ── list_secrets ──────────────────────────────────────────────────────────
@@ -217,12 +242,12 @@ mod tests {
     #[tokio::test]
     async fn list_secrets_propagates_error() {
         let store = store_with_mock(|m| {
-            m.expect_list()
-                .once()
-                .returning(|_| Err(Error::Generic {
+            m.expect_list().once().returning(|_| {
+                Err(Error::Generic {
                     store: "GcpSecretManager",
                     source: Box::new(StringError::from("quota exceeded")),
-                }));
+                })
+            });
         });
         assert!(store.list_secrets(None).await.is_err());
     }
@@ -243,10 +268,15 @@ mod tests {
     fn debug_shows_project_and_api() {
         const DETAILS: &str = "project_id=my-gcp-project, api=https://secretmanager.googleapis.com/v1, provider=GcpSecretManager";
         let store = store_with_mock(|m| {
-            m.expect_debug_info().once().return_const(DETAILS.to_owned());
+            m.expect_debug_info()
+                .once()
+                .return_const(DETAILS.to_owned());
         });
         let debug_str = format!("{:?}", store);
         assert!(debug_str.contains("project_id="), "debug was: {debug_str}");
-        assert!(debug_str.contains("provider=GcpSecretManager"), "debug was: {debug_str}");
+        assert!(
+            debug_str.contains("provider=GcpSecretManager"),
+            "debug was: {debug_str}"
+        );
     }
 }

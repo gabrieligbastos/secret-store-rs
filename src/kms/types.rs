@@ -55,7 +55,8 @@ mod tests {
         ciborium::into_writer(&ct, &mut buf).expect("CBOR encode failed");
         assert!(!buf.is_empty());
 
-        let decoded: Ciphertext = ciborium::from_reader(buf.as_slice()).expect("CBOR decode failed");
+        let decoded: Ciphertext =
+            ciborium::from_reader(buf.as_slice()).expect("CBOR decode failed");
         let Ciphertext::V1(inner) = decoded;
         let Ciphertext::V1(orig) = &ct;
 
@@ -69,7 +70,8 @@ mod tests {
     #[test]
     fn ciphertext_v1_serde_roundtrip_json() {
         let ct = Ciphertext::V1(CiphertextV1 {
-            kms_key_id: "projects/my-project/locations/global/keyRings/my-ring/cryptoKeys/my-key".to_owned(),
+            kms_key_id: "projects/my-project/locations/global/keyRings/my-ring/cryptoKeys/my-key"
+                .to_owned(),
             data_key_id: Uuid::new_v4(),
             encrypted_data_key: vec![0xAA, 0xBB],
             nonce: [42u8; 12],

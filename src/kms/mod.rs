@@ -184,7 +184,11 @@ impl SecretsManager {
 
         let encrypted_data_key = self
             .kms
-            .encrypt_data_key(&self.master_key_id, data_key.as_ref(), data_key_id.as_bytes())
+            .encrypt_data_key(
+                &self.master_key_id,
+                data_key.as_ref(),
+                data_key_id.as_bytes(),
+            )
             .await
             .map_err(|e| Error::Generic {
                 store: "SecretsManager",
@@ -197,14 +201,22 @@ impl SecretsManager {
         let encrypted_data = cipher
             .encrypt(
                 &nonce.into(),
-                Payload { msg: plaintext, aad: &aad_hash },
+                Payload {
+                    msg: plaintext,
+                    aad: &aad_hash,
+                },
             )
             .map_err(|e| Error::Generic {
                 store: "SecretsManager",
                 source: Box::new(StringError(format!("AES-256-GCM encrypt failed: {e}"))),
             })?;
 
-        let estimated = encrypted_data.len() + self.master_key_id.len() + 16 + encrypted_data_key.len() + 12 + 32;
+        let estimated = encrypted_data.len()
+            + self.master_key_id.len()
+            + 16
+            + encrypted_data_key.len()
+            + 12
+            + 32;
         let ct = Ciphertext::V1(CiphertextV1 {
             kms_key_id: self.master_key_id.clone(),
             data_key_id,
@@ -245,7 +257,11 @@ impl SecretsManager {
                 debug!(data_key_id = %ct.data_key_id, "decrypting data key from KMS");
                 let raw = self
                     .kms
-                    .decrypt_data_key(&ct.kms_key_id, &ct.encrypted_data_key, ct.data_key_id.as_bytes())
+                    .decrypt_data_key(
+                        &ct.kms_key_id,
+                        &ct.encrypted_data_key,
+                        ct.data_key_id.as_bytes(),
+                    )
                     .await
                     .map_err(|e| Error::Generic {
                         store: "SecretsManager",
@@ -267,7 +283,10 @@ impl SecretsManager {
         let plaintext = cipher
             .decrypt(
                 &ct.nonce.into(),
-                Payload { msg: &ct.encrypted_data, aad: &aad_hash },
+                Payload {
+                    msg: &ct.encrypted_data,
+                    aad: &aad_hash,
+                },
             )
             .map_err(|e| Error::Generic {
                 store: "SecretsManager",
@@ -385,7 +404,10 @@ mod tests {
         let mgr = manager_with_noop();
         let ct = mgr.encrypt(b"secret", b"correct-aad").await.unwrap();
         let result = mgr.decrypt(&ct, b"wrong-aad").await;
-        assert!(result.is_err(), "expected decryption to fail with wrong AAD");
+        assert!(
+            result.is_err(),
+            "expected decryption to fail with wrong AAD"
+        );
     }
 
     #[tokio::test]
@@ -412,12 +434,12 @@ mod tests {
     #[tokio::test]
     async fn kms_encrypt_failure_propagates() {
         let mut mock_kms = MockKms::new();
-        mock_kms
-            .expect_encrypt_data_key()
-            .returning(|_, _, _| Err(Error::Generic {
+        mock_kms.expect_encrypt_data_key().returning(|_, _, _| {
+            Err(Error::Generic {
                 store: "MockKms",
                 source: Box::new(StringError("KMS unavailable".to_owned())),
-            }));
+            })
+        });
 
         let mgr = SecretsManager::new(Arc::new(mock_kms), "key-id".to_owned());
         let result = mgr.encrypt(b"secret", b"aad").await;
@@ -427,12 +449,12 @@ mod tests {
     #[tokio::test]
     async fn kms_decrypt_failure_propagates() {
         let mut mock_kms = MockKms::new();
-        mock_kms
-            .expect_decrypt_data_key()
-            .returning(|_, _, _| Err(Error::Generic {
+        mock_kms.expect_decrypt_data_key().returning(|_, _, _| {
+            Err(Error::Generic {
                 store: "MockKms",
                 source: Box::new(StringError("KMS unavailable".to_owned())),
-            }));
+            })
+        });
         mock_kms
             .expect_encrypt_data_key()
             .returning(|_, data_key, _| Ok(data_key.to_vec()));

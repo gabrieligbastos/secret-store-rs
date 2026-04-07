@@ -40,7 +40,10 @@ impl std::fmt::Display for ConfigKey {
 
 /// Maps an `aws_sdk_secretsmanager::Error` to our crate's [`Error`] type,
 /// inspecting the error code where available.
-pub(super) fn map_aws_error(name: &str, e: impl std::error::Error + Send + Sync + 'static) -> Error {
+pub(super) fn map_aws_error(
+    name: &str,
+    e: impl std::error::Error + Send + Sync + 'static,
+) -> Error {
     let msg = e.to_string();
     if msg.contains("ResourceNotFoundException") || msg.contains("SecretNotFound") {
         Error::NotFound {
@@ -52,8 +55,13 @@ pub(super) fn map_aws_error(name: &str, e: impl std::error::Error + Send + Sync 
             name: name.to_owned(),
             source: Box::new(e),
         }
-    } else if msg.contains("InvalidClientTokenId") || msg.contains("ExpiredToken") || msg.contains("UnrecognizedClientException") {
-        Error::Unauthenticated { source: Box::new(e) }
+    } else if msg.contains("InvalidClientTokenId")
+        || msg.contains("ExpiredToken")
+        || msg.contains("UnrecognizedClientException")
+    {
+        Error::Unauthenticated {
+            source: Box::new(e),
+        }
     } else {
         Error::Generic {
             store: "AwsSecretsManager",
@@ -71,31 +79,48 @@ mod tests {
     fn config_key_env_var_names_are_correct() {
         assert_eq!(ConfigKey::Region.env_var(), "AWS_DEFAULT_REGION");
         assert_eq!(ConfigKey::AccessKeyId.env_var(), "AWS_ACCESS_KEY_ID");
-        assert_eq!(ConfigKey::SecretAccessKey.env_var(), "AWS_SECRET_ACCESS_KEY");
+        assert_eq!(
+            ConfigKey::SecretAccessKey.env_var(),
+            "AWS_SECRET_ACCESS_KEY"
+        );
         assert_eq!(ConfigKey::SessionToken.env_var(), "AWS_SESSION_TOKEN");
     }
 
     #[test]
     fn map_resource_not_found_to_not_found_error() {
-        let err = map_aws_error("my-secret", StringError::from("ResourceNotFoundException: Secrets Manager can't find the specified secret."));
+        let err = map_aws_error(
+            "my-secret",
+            StringError::from(
+                "ResourceNotFoundException: Secrets Manager can't find the specified secret.",
+            ),
+        );
         assert!(err.is_not_found());
     }
 
     #[test]
     fn map_access_denied_to_permission_denied() {
-        let err = map_aws_error("my-secret", StringError::from("AccessDeniedException: User not authorized"));
+        let err = map_aws_error(
+            "my-secret",
+            StringError::from("AccessDeniedException: User not authorized"),
+        );
         assert!(matches!(err, Error::PermissionDenied { .. }));
     }
 
     #[test]
     fn map_invalid_token_to_unauthenticated() {
-        let err = map_aws_error("my-secret", StringError::from("InvalidClientTokenId: The security token is not valid"));
+        let err = map_aws_error(
+            "my-secret",
+            StringError::from("InvalidClientTokenId: The security token is not valid"),
+        );
         assert!(matches!(err, Error::Unauthenticated { .. }));
     }
 
     #[test]
     fn map_generic_error_stays_generic() {
-        let err = map_aws_error("my-secret", StringError::from("ServiceUnavailableException: Service is unavailable"));
+        let err = map_aws_error(
+            "my-secret",
+            StringError::from("ServiceUnavailableException: Service is unavailable"),
+        );
         assert!(matches!(err, Error::Generic { .. }));
     }
 }

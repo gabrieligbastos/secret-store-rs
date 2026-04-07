@@ -1,9 +1,9 @@
 //! Builder for [`super::HttpSecretStore`].
 
-use crate::common::Result;
 use super::client::ReqwestHttpClient;
 use super::store::HttpSecretStore;
 use super::types::ConfigKey;
+use crate::common::Result;
 
 /// Fluent builder for [`HttpSecretStore`].
 ///
@@ -50,9 +50,15 @@ impl HttpSecretStoreBuilder {
     /// Populates all fields from environment variables.
     pub fn from_env() -> Self {
         Self {
-            base_url: std::env::var(ConfigKey::BaseUrl.env_var()).ok().filter(|v| !v.is_empty()),
-            auth_token: std::env::var(ConfigKey::AuthToken.env_var()).ok().filter(|v| !v.is_empty()),
-            namespace: std::env::var(ConfigKey::Namespace.env_var()).ok().filter(|v| !v.is_empty()),
+            base_url: std::env::var(ConfigKey::BaseUrl.env_var())
+                .ok()
+                .filter(|v| !v.is_empty()),
+            auth_token: std::env::var(ConfigKey::AuthToken.env_var())
+                .ok()
+                .filter(|v| !v.is_empty()),
+            namespace: std::env::var(ConfigKey::Namespace.env_var())
+                .ok()
+                .filter(|v| !v.is_empty()),
         }
     }
 
@@ -92,12 +98,12 @@ impl HttpSecretStoreBuilder {
         // Strip trailing slash for consistency.
         let base_url = base_url.trim_end_matches('/').to_owned();
 
-        let http_client = reqwest::Client::builder()
-            .build()
-            .map_err(|e| crate::common::Error::Configuration {
+        let http_client = reqwest::Client::builder().build().map_err(|e| {
+            crate::common::Error::Configuration {
                 store: "HttpSecretStore",
                 message: format!("failed to build HTTP client: {e}"),
-            })?;
+            }
+        })?;
 
         Ok(HttpSecretStore::from_reqwest_client(ReqwestHttpClient {
             base_url,
@@ -115,7 +121,10 @@ mod tests {
     #[test]
     fn builder_stores_base_url() {
         let b = HttpSecretStoreBuilder::new().with_base_url("http://localhost:8200/v1/secret");
-        assert_eq!(b.base_url.as_deref(), Some("http://localhost:8200/v1/secret"));
+        assert_eq!(
+            b.base_url.as_deref(),
+            Some("http://localhost:8200/v1/secret")
+        );
     }
 
     #[test]
@@ -157,7 +166,10 @@ mod tests {
     fn build_fails_without_base_url() {
         let result = HttpSecretStoreBuilder::new().build();
         assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), crate::common::Error::Configuration { .. }));
+        assert!(matches!(
+            result.unwrap_err(),
+            crate::common::Error::Configuration { .. }
+        ));
     }
 
     #[test]
@@ -166,7 +178,11 @@ mod tests {
             .with_base_url("http://localhost:8200/v1/secret/")
             .build()
             .unwrap();
-        assert!(!store.base_url().ends_with('/'), "url was: {}", store.base_url());
+        assert!(
+            !store.base_url().ends_with('/'),
+            "url was: {}",
+            store.base_url()
+        );
     }
 
     #[test]
