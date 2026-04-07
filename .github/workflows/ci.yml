@@ -92,3 +92,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: crate-ci/typos@master
+
+  # ── Single required status check for branch protection ────────────────────
+  # Branch protection only needs to require THIS job instead of listing every
+  # matrix permutation individually.
+  ci-success:
+    name: ci-success
+    needs: [check, test, clippy, fmt, docs, deny, typos]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: All CI jobs passed
+        run: |
+          results='${{ toJSON(needs.*.result) }}'
+          if echo "$results" | grep -qv '"success"'; then
+            echo "One or more CI jobs failed: $results"
+            exit 1
+          fi
+          echo "All CI jobs succeeded."

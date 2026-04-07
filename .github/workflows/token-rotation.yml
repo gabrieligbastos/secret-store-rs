@@ -1,0 +1,62 @@
+name: Token Rotation Reminder
+
+# Runs on the 1st of every month and warns 30 days before expiry.
+# To configure: set the CARGO_REGISTRY_TOKEN_EXPIRES repository variable
+# (not secret) to the token's expiry date in YYYY-MM-DD format.
+#   GitHub → Settings → Secrets and variables → Actions → Variables → New
+#   Name:  CARGO_REGISTRY_TOKEN_EXPIRES
+#   Value: 2027-04-07
+on:
+  schedule:
+    - cron: "0 9 1 * *"   # 09:00 UTC on the 1st of every month
+  workflow_dispatch:       # allow manual trigger to test at any time
+
+jobs:
+  check-expiry:
+    name: Check crates.io token expiry
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check expiry and open issue if within 30 days
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EXPIRES: ${{ vars.CARGO_REGISTRY_TOKEN_EXPIRES }}
+          REPO: ${{ github.repository }}
+        run: |
+          if [ -z "$EXPIRES" ]; then
+            echo "CARGO_REGISTRY_TOKEN_EXPIRES variable is not set — skipping."
+            exit 0
+          fi
+
+          today=$(date -u +%Y-%m-%d)
+          expiry_epoch=$(date -d "$EXPIRES" +%s 2>/dev/null || date -j -f "%Y-%m-%d" "$EXPIRES" +%s)
+          today_epoch=$(date -u +%s)
+          days_left=$(( (expiry_epoch - today_epoch) / 86400 ))
+
+          echo "Token expires: $EXPIRES ($days_left days from today)"
+
+          if [ "$days_left" -le 30 ]; then
+            # Check if a reminder issue is already open
+            existing=$(gh issue list \
+              --repo "$REPO" \
+              --label "token-rotation" \
+              --state open \
+              --json number \
+              --jq length)
+
+            if [ "$existing" -gt 0 ]; then
+              echo "Reminder issue already open — skipping."
+              exit 0
+            fi
+
+            gh issue create \
+              --repo "$REPO" \
+              --title "Action required: rotate CARGO_REGISTRY_TOKEN (expires ${EXPIRES}, ${days_left}d left)" \
+              --label "token-rotation" \
+              --body-file .github/ISSUE_TEMPLATE/token-rotation.md
+            echo "Reminder issue created."
+          else
+            echo "Token is valid for $days_left more days — no action needed."
+          fi
