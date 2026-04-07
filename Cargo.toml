@@ -46,7 +46,7 @@ url                             = { version = "=2.5.4",  optional = true }
 futures-util                    = { version = "=0.3.32", default-features = false, features = ["std"], optional = true }
 
 # ── AWS Secrets Manager (feature = "aws") ────────────────────────────────────
-aws-config               = { version = "=1.8.0",  default-features = false, features = ["behavior-version-latest"], optional = true }
+aws-config               = { version = "=1.8.15",  default-features = false, features = ["behavior-version-latest"], optional = true }
 aws-sdk-secretsmanager   = { version = "=1.73.0", default-features = false, optional = true }
 
 # ── GCP Secret Manager (feature = "gcp") — lean: gcp-auth + reqwest ──────────
