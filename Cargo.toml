@@ -50,7 +50,7 @@ aws-config               = { version = "=1.8.0",  default-features = false, feat
 aws-sdk-secretsmanager   = { version = "=1.73.0", default-features = false, optional = true }
 
 # ── GCP Secret Manager (feature = "gcp") — lean: gcp-auth + reqwest ──────────
-gcp_auth    = { version = "=0.12.4", optional = true }
+gcp_auth    = { version = "=0.12.6", optional = true }
 reqwest     = { version = "=0.12.15", default-features = false, features = ["rustls-tls-native-roots", "json"], optional = true }
 serde_json  = { version = "=1.0.149", optional = true }
 
